@@ -3,15 +3,17 @@
 An end-to-end automated WordPress development plugin for [Claude Code](https://claude.ai/claude-code).
 Turns Claude into a team of specialists — senior WordPress engineer, brand strategist, accessibility auditor, security engineer, and DevOps lead — operating as one.
 
+> A free, personal open-source tool, not a service. Folder and script names use `client` to mean one site project.
+
 ## What this plugin does
 
-- Audits existing client websites and competitor sites
+- Audits an existing site and comparable sites for reference
 - Derives expert colour palettes from brand guidelines or industry psychology
 - Validates every palette against WCAG 2.1 AA automatically
 - Builds production-quality custom PHP themes **or** Elementor sites
 - Enforces security standards (OWASP, WordPress hardening) at every phase
 - Generates deployment packages with `.htaccess` hardening included
-- Manages multi-client projects with isolated Docker environments
+- Keeps each site project in its own isolated Docker environment
 
 ---
 
@@ -21,7 +23,7 @@ Turns Claude into a team of specialists — senior WordPress engineer, brand str
 
 - [Claude Code](https://claude.ai/claude-code) installed and authenticated
 - Docker + Docker Compose (for local WordPress environments)
-- `cloudflared` (for client preview tunnels — `sudo snap install cloudflared`)
+- `cloudflared` (for shareable preview tunnels — `sudo snap install cloudflared`)
 - `gh` CLI authenticated (`gh auth login`)
 
 ### Install the plugin
@@ -59,14 +61,14 @@ Invoke these inside Claude Code:
 | `/wp-refine` | Post-build review — score UI/UX/CX/Security, fix all issues autonomously |
 | `/wp-save` | Save progress — DB export + git commit |
 | `/wp-package` | Generate production-ready deployment archive with security hardening |
-| `/wp-demo` | Start/stop Cloudflare Tunnel for client preview |
-| `/wp-status` | Show status for one or all client projects |
+| `/wp-demo` | Start/stop Cloudflare Tunnel for a shareable preview |
+| `/wp-status` | Show status for one or all site projects |
 
 ---
 
 ## Build Approaches
 
-Two build paths are supported. The client chooses based on trade-offs
+Two build paths are supported. Choose one based on the trade-offs
 (see [elementor-vs-custom.md](skills/wordpress-dev/references/elementor-vs-custom.md)):
 
 ### Custom PHP Theme (default)
@@ -76,22 +78,22 @@ Two build paths are supported. The client chooses based on trade-offs
 - Recommended for: performance-critical sites, security-sensitive industries, distinctive design requirements
 
 ### Elementor
-- Client can edit layouts after launch with drag-and-drop
+- The site owner can edit layouts after launch with drag-and-drop
 - Hello Elementor parent + child theme (security hardening still applied identically)
 - Design system wired into Elementor Global Colors and Global Fonts
-- Recommended for: marketing-led sites with frequent layout changes, constrained budgets
+- Recommended for: marketing-led sites with frequent layout changes
 
 ---
 
 ## Scenarios
 
 ### Scenario 1 — Existing Site Redesign
-Client provides a live URL (+ optional competitor URLs).
+Start from a live URL (+ optional comparable-site URLs).
 
 Flow: Crawl → Competitor Analysis → Expert Design Direction → PRD → Scaffold → Build → QA → Package
 
 ### Scenario 2 — New Build from Scratch
-Client provides a brief with no existing site.
+Start from a written brief when there's no existing site.
 
 Flow: Intake → Expert Design Direction → PRD → Scaffold → Build → QA → Package
 
@@ -101,7 +103,7 @@ Flow: Intake → Expert Design Direction → PRD → Scaffold → Build → QA �
 
 Every build derives a production-ready design system — never guesses or uses random colours:
 
-1. **Brand asset detection** — extracts hex values from existing site CSS or client brand guidelines
+1. **Brand asset detection** — extracts hex values from existing site CSS or brand guidelines
 2. **Industry colour psychology** — 9 industry categories mapped to emotional register, primary range, and accent strategy
 3. **Full palette construction** — 16 design tokens with purpose and contrast requirements defined
 4. **WCAG validation** — Python script validates all key colour pairs before build starts; failures block progress
@@ -146,7 +148,7 @@ Applied at every phase — not just packaging time:
 │   └── CLAUDE.md                    ← Project-level Claude instructions
 └── clients/
     ├── .port-registry.json          ← Port assignments (8082, 8084, 8086...)
-    └── <client-slug>/               ← Isolated git repo per client
+    └── <client-slug>/               ← Isolated git repo per site project
         ├── docker-compose.yml       ← Own WordPress + MySQL + phpMyAdmin
         ├── SESSION_STATE.json       ← Build progress (enables /wp-resume)
         ├── PRD.md                   ← Product Requirements Document
@@ -154,7 +156,7 @@ Applied at every phase — not just packaging time:
         ├── wp-content/themes/       ← Custom theme or Elementor child theme
         ├── elementor-templates/     ← Elementor page JSON exports (if Elementor build)
         ├── reports/                 ← Site audit + competitor analysis
-        ├── docs/                    ← Changelog + client handoff guide
+        ├── docs/                    ← Changelog + site owner guide
         ├── database/seed.sql        ← DB snapshot (gitignored)
         └── deployment/              ← Production archive + .htaccess hardening
 ```
@@ -184,14 +186,14 @@ wordpress-dev/
         ├── theme-scaffold.md              ← Classic PHP theme boilerplate (secure by default)
         ├── design-tokens.md              ← CSS custom property system specification
         ├── session-management.md          ← SESSION_STATE.json schema + resume protocol
-        └── elementor-vs-custom.md         ← Client decision guide: trade-offs comparison
+        └── elementor-vs-custom.md         ← Decision guide: trade-offs comparison
 ```
 
 ---
 
 ## WP-CLI — Correct Command Format
 
-**Always use this format inside client projects. Never use `--profile cli`.**
+**Always use this format inside site projects. Never use `--profile cli`.**
 
 ```bash
 cd ~/clients/<slug>
