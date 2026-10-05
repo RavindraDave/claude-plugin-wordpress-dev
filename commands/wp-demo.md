@@ -79,9 +79,20 @@ If no URL appears, print the last 20 lines of the log and report the error.
 **IMPORTANT: Use this exact format. NEVER use `--profile cli`.**
 
 ```bash
-docker compose run --rm wpcli option update siteurl "$TUNNEL_URL"
-docker compose run --rm wpcli option update home "$TUNNEL_URL"
+LOCAL_URL="http://localhost:$WP_PORT"
+# Swap every stored URL, not just siteurl/home: Elementor data, Elementor's element
+# cache and Yoast indexables hold absolute URLs (images would load from localhost).
+# Plain + JSON-escaped forms; GUIDs untouched. Reversed exactly by "Stop tunnel".
+for PAIR in "$LOCAL_URL|$TUNNEL_URL" "${LOCAL_URL//\//\\/}|${TUNNEL_URL//\//\\/}"; do
+  docker compose run --rm -T wpcli search-replace "${PAIR%%|*}" "${PAIR#*|}" \
+    --all-tables --precise --skip-columns=guid --format=count
+done
+docker compose run --rm wpcli elementor flush-css 2>/dev/null || true
+docker compose run --rm wpcli cache flush
 echo "WordPress URLs updated to tunnel URL"
+
+# Verify: should print 0
+curl -s "$TUNNEL_URL/" | grep -c "localhost:$WP_PORT"
 ```
 
 ### Step 6 — Update SESSION_STATE.json
@@ -128,19 +139,32 @@ TO STOP: /wp-demo stop
 ```bash
 cd ~/clients/<slug>
 
+WP_PORT=$(grep "^WP_PORT" .env | cut -d= -f2)
+
 # Kill the tunnel process
 CF_PID=$(cat /tmp/cf-tunnel-<slug>.pid 2>/dev/null)
 if [ -n "$CF_PID" ]; then
   kill $CF_PID 2>/dev/null && echo "Killed tunnel PID $CF_PID"
 fi
-pkill -f "cloudflared tunnel.*$WP_PORT" 2>/dev/null || true
+# [c] stops the pattern matching this shell's own command line (pkill would kill itself).
+pkill -f "[c]loudflared tunnel --url http://localhost:$WP_PORT" 2>/dev/null || true
 rm -f /tmp/cf-tunnel-<slug>.pid /tmp/cf-tunnel-<slug>.log
 
-# Restore WordPress URLs to localhost
+# Restore WordPress URLs to localhost (reverse of the start search-replace)
 WP_PORT=$(grep "^WP_PORT" .env | cut -d= -f2)
-docker compose run --rm wpcli option update siteurl "http://localhost:$WP_PORT"
-docker compose run --rm wpcli option update home "http://localhost:$WP_PORT"
-echo "WordPress URLs restored to http://localhost:$WP_PORT"
+LOCAL_URL="http://localhost:$WP_PORT"
+TUNNEL_URL=$(python3 -c "import json;print(json.load(open('SESSION_STATE.json')).get('tunnel_url',''))")
+if [ -n "$TUNNEL_URL" ]; then
+  for PAIR in "$TUNNEL_URL|$LOCAL_URL" "${TUNNEL_URL//\//\\/}|${LOCAL_URL//\//\\/}"; do
+    docker compose run --rm -T wpcli search-replace "${PAIR%%|*}" "${PAIR#*|}" \
+      --all-tables --precise --skip-columns=guid --format=count
+  done
+fi
+docker compose run --rm wpcli option update siteurl "$LOCAL_URL"
+docker compose run --rm wpcli option update home "$LOCAL_URL"
+docker compose run --rm wpcli elementor flush-css 2>/dev/null || true
+docker compose run --rm wpcli cache flush
+echo "WordPress URLs restored to $LOCAL_URL"
 
 # Update SESSION_STATE.json
 python3 -c "

@@ -49,7 +49,6 @@ exactly where work stopped — even across different Claude Code sessions.
   },
   "git": {
     "current_branch": "dev",
-    "last_commit": "abc1234",
     "remote": "pending",
     "staging_deployed": null,
     "production_deployed": null,
@@ -77,7 +76,7 @@ exactly where work stopped — even across different Claude Code sessions.
    - Move step name from `pending_steps` to `completed_steps`
    - Update `current_step` to the next pending step
    - Update `phase` if crossing a phase boundary
-   - Update `git.last_commit` with new commit hash
+   - Do not store the commit hash (a commit cannot contain its own hash) — read it with `git log -1`
    - Set `timestamps.last_session` to now
 
 2. **On blockers:**
